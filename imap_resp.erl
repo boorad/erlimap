@@ -29,36 +29,39 @@ parse_tag({response, _Tag, _, _} = ResponseTuple) ->
 
 % TODO TODO TODO
 analyze_response(not_authenticated, Responses, {command, login, {_, _}}, From) ->
-	send_client_response_result(Responses, From),
-	authenticated;
+	case get_response_result(Responses) of
+		{result, ok} ->
+			send_client_response_result(ok, From),
+			authenticated;
+		{result, Other} ->
+			send_client_response_result(Other, From),
+			not_authenticated
+	end;
 analyze_response(StateName, Responses, {command, logout, {}}, From) ->
-	CheckHasBye = fun(Responses2) -> check_response_has(Responses2, "BYE") end,
-	case send_client_if_invalid_response(Responses, From, CheckHasBye) of
-		false ->
-			send_client_response_result(Responses, From),
+	HasBye = check_response_has(Responses, "BYE"),
+	{result, Result} = get_response_result(Responses),
+	case {HasBye, Result} of
+		{true, ok} ->
+			send_client_response_result(ok, From),
 			logout;
-		true ->
+		{_, Result} ->
+			send_client_response_result(Result, From),
 			StateName
 	end;
 analyze_response(StateName, Responses, {command, noop, {}}, From) ->
-	send_client_response_result(Responses, From),
+	{result, Result} = get_response_result(Responses),
+	send_client_response_result(Result, From),
 	StateName.
 % TODO TODO TODO
 
-send_client_response_result(Responses, From) ->
-	case check_response_result(Responses) of
-		{result, ok} -> gen_fsm:reply(From, ok);
-		{result, no} -> gen_fsm:reply(From, {error, no_response});
-		{result, bad} -> gen_fsm:reply(From, {error, bad_response})
+send_client_response_result(Result, From) ->
+	case Result of
+		ok -> gen_fsm:reply(From, ok);
+		no -> gen_fsm:reply(From, {error, no_response});
+		bad -> gen_fsm:reply(From, {error, bad_response})
 	end.
 
-send_client_if_invalid_response(Responses, From, CheckFun) ->
-	case CheckFun(Responses) of
-		true -> false;
-		false -> gen_fsm:reply(From, {error, invalid_response})
-	end.
-
-check_response_result(Responses) ->
+get_response_result(Responses) ->
 	case lists:last(Responses) of
 		{response, Tag, "OK", _} when not is_atom(Tag) -> {result, ok};
 		{response, Tag, "NO", _} when not is_atom(Tag) -> {result, no};
