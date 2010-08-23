@@ -1,0 +1,66 @@
+/* neato -Tpdf -o model.pdf model.dot */
+/* circo -Tpdf -o model.pdf model.dot */
+digraph G {
+	graph [overlap=false, splines=true];
+	edge [len=3];
+
+	/* External process nodes */
+	{ node [shape=box];
+		"IMAP server";
+	}
+
+	/* Process nodes */
+	{ node [shape=circle, style=filled];
+		"connection_handler()";
+		"client_loop()";
+	}
+
+	/* Function nodes */
+	{ node [shape=plaintext];
+		"connect()";
+		"disconnect()";
+		"login()";
+		"logout()";
+		"noop()";
+		"handle_response()";
+		"send_command()";
+		"check_new_mail()";
+	}
+
+	/* External process communication graph */
+	{ edge [dir=none, style=bold];
+		"IMAP server" -> "connection_handler()" [label="SOCKET TCP/143"];
+	}
+
+	/* Process communication graph */
+	{ edge [style=bold];
+		"handle_response()" -> "disconnect()" [label="ok"];
+		"handle_response()" -> "login()" [label="ok"];
+		"handle_response()" -> "logout()" [label="ok"];
+		"handle_response()" -> "noop()" [label="ok"];
+		"handle_response()" -> "check_new_mail()" [label="{new_mail, Mails}"];
+
+		"disconnect()" -> "handle_response()" [label="{close, From}"];
+		"login()" -> "handle_response()" [label="{command, From, login, {User, Pass}}"];
+		"logout()" -> "handle_response()" [label="{command, From, logout, {}}"];
+		"noop()" -> "handle_response()" [label="{command, From, noop, {}}"];
+	}
+
+	/* Function call graph */
+	{ edge [style=dashed];
+		"connection_handler()" -> "connection_handler()";
+		"client_loop()" -> "client_loop()";
+
+		"connection_handler()" -> "handle_response()";
+		"connection_handler()" -> "send_command()";
+
+		"client_loop()" -> "connect()";
+		"client_loop()" -> "disconnect()";
+		"client_loop()" -> "login()";
+		"client_loop()" -> "logout()";
+		"client_loop()" -> "noop()";
+		"client_loop()" -> "check_new_mail()";
+
+		"connect()" -> "connection_handler()" [label="spawn()"];
+	}
+}
