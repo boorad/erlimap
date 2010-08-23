@@ -32,7 +32,7 @@ analyze_response(not_authenticated, Responses, {command, login, {_, _}}, From) -
 	send_client_response_result(Responses, From),
 	authenticated;
 analyze_response(StateName, Responses, {command, logout, {}}, From) ->
-	CheckHasBye = fun(Responses) -> check_response_has(Responses, "BYE") end,
+	CheckHasBye = fun(Responses2) -> check_response_has(Responses2, "BYE") end,
 	case send_client_if_invalid_response(Responses, From, CheckHasBye) of
 		false ->
 			send_client_response_result(Responses, From),
