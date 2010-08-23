@@ -32,18 +32,18 @@ start_ssl() ->
 		{error, {already_started, ssl}} -> ok
 	end.
 
-sock_connect(tcp, Host, Port, Opts) ->
+sock_connect(plain, Host, Port, Opts) ->
 	gen_tcp:connect(Host, Port, Opts);
 sock_connect(ssl, Host, Port, Opts) ->
 	ok = start_ssl(),
 	ssl:connect(Host, Port, Opts).
 
-sock_send(tcp, Sock, Data) ->
+sock_send(plain, Sock, Data) ->
 	gen_tcp:send(Sock, Data);
 sock_send(ssl, Sock, Data) ->
 	ssl:send(Sock, Data).
 
-sock_close(tcp, Sock) ->
+sock_close(plain, Sock) ->
 	gen_tcp:close(Sock);
 sock_close(ssl, Sock) ->
 	ssl:close(Sock).

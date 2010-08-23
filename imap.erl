@@ -25,7 +25,7 @@
 %%%-----------------
 
 connect(Host, Port) ->
-	gen_fsm:start_link(?MODULE, {tcp, Host, Port}, []).
+	gen_fsm:start_link(?MODULE, {plain, Host, Port}, []).
 
 connect_ssl(Host, Port) ->
 	gen_fsm:start_link(?MODULE, {ssl, Host, Port}, []).
@@ -90,15 +90,16 @@ logout(Response = {response, _, _, _}, StateData) ->
 	handle_response(Response, logout, StateData).
 
 % TODO: reconexion en caso de desconexion inesperada
-handle_info({SockClosed, Sock}, logout, StateData = #state_data{socket = Sock}) when
-		SockClosed == tcp_closed; SockClosed == ssl_closed ->
+handle_info({SockTypeClosed, Sock}, logout, StateData = #state_data{socket = Sock}) when
+		SockTypeClosed == tcp_closed; SockTypeClosed == ssl_closed ->
 	?LOG_INFO("IMAP connection closed", []),
 	{stop, normal, StateData};
-handle_info({SockClosed, Sock}, _StateName, StateData = #state_data{socket = Sock}) when
-		SockClosed == tcp_closed; SockClosed == ssl_closed ->
+handle_info({SockTypeClosed, Sock}, _StateName, StateData = #state_data{socket = Sock}) when
+		SockTypeClosed == tcp_closed; SockTypeClosed == ssl_closed ->
 	?LOG_ERROR(handle_info, "IMAP connection closed unexpectedly", []),
 	{stop, "connection closed unexpectedly", StateData};
-handle_info({SockType, Sock, Line}, StateName, StateData = #state_data{socket_type = SockType, socket = Sock}) ->
+handle_info({SockType, Sock, Line}, StateName, StateData = #state_data{socket = Sock}) when
+		SockType == tcp; SockType == ssl ->
 	?LOG_DEBUG("line received: ~s", [imap_util:clean_line(Line)]),
 	case imap_resp:parse_response(imap_util:clean_line(Line)) of
 		{ok, Response} ->
@@ -152,16 +153,28 @@ handle_command(Command, From, StateName, StateData) ->
 %%% Unit tests
 %%%-----------
 
-complete_test() ->
+other_modules_test() ->
 	ok = eunit:test([imap_util, imap_re, imap_resp, imap_cmd]).
 
-invalid_connection_test() ->
-	{error, badarg} = connect(foo, bar).
+test_connection(ConnType, Host, Port, User, Pass) ->
+	case ConnType of
+		plain -> {ok, Conn} = connect(Host, Port);
+		ssl -> {ok, Conn} = connect_ssl(Host, Port)
+	end,
+	timer:sleep(500), % FIXME: avoids enqueued_commands, implement!
+	ok = noop(Conn),
+	ok = login(Conn, User, Pass),
+	ok = noop(Conn),
+	random:seed(now()),
+	case random:uniform(2) of
+		1 -> ok = logout(Conn);
+		2 -> ok = disconnect(Conn)
+	end.
 
-connection_test() ->
-	{ok, Conn} = connect("alumnos.fi.upm.es", 143),
-	ok = disconnect(Conn).
-
-connection_ssl_test() ->
-	{ok, Conn} = connect_ssl("alumnos.fi.upm.es", 993),
-	ok = disconnect(Conn).
+connections_test_() ->
+	{ok, AccountsConf} = file:consult("test_account.conf"),
+	GenTest = fun(AccountConf) ->
+			{ConnType, Host, Port, User, Pass} = AccountConf,
+			fun() -> test_connection(ConnType, Host, Port, User, Pass) end
+	end,
+	lists:map(GenTest, AccountsConf).
