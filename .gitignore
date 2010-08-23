@@ -1,1 +1,4 @@
+*.swp
+*.beam
+tags
 test_account.conf

@@ -4,7 +4,11 @@
 
 -behaviour(gen_fsm).
 
--compile(export_all). % FIXME
+-export([connect/2, connect_ssl/2, login/3, logout/1, noop/1, disconnect/1]).
+
+-export([init/1, handle_sync_event/4, handle_info/3, terminate/3]).
+-export([server_greeting/2, server_greeting/3, not_authenticated/2, not_authenticated/3,
+		authenticated/2, authenticated/3, logout/2, logout/3]).
 
 %%--- TODO TODO TODO -------------------------------------------------------------------
 %% Objetivos:
@@ -13,8 +17,7 @@
 %%--------------------------------------------------------------------------------------
 
 %%%--- TODO TODO TODO -------------------------
-% 1. Arreglar el export
-% 2. Filtrar mensajes de error_logger para desactivar los de este modulo, desactivar por defecto el logger?
+% 1. Filtrar mensajes de error_logger para desactivar los de este modulo, desactivar por defecto el logger?
 %%%--------------------------------------------
 
 %%%-----------------
