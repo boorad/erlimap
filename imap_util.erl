@@ -14,8 +14,7 @@ identity_fun(X) -> X.
 catch_first_error(Fun) ->
 	try Fun()
 	catch
-		error:{badmatch, {error, Reason}} -> {error, Reason};
-		error:{badmatch, error} -> error
+		error:{badmatch, {error, Reason}} -> {error, Reason}
 	end.
 
 extract_dict_element(Key, Dict) ->
