@@ -172,9 +172,6 @@ handle_command(Command, From, StateName, StateData) ->
 %%% Unit tests
 %%%-----------
 
-other_modules_test() ->
-	ok = eunit:test([imap_util, imap_re, imap_resp, imap_cmd]).
-
 test_connection(ConnType, Host, Port, User, Pass) ->
 	case ConnType of
 		tcp -> {ok, Conn} = connect(Host, Port);
