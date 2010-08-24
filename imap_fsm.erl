@@ -20,7 +20,8 @@
 %%--------------------------------------------------------------------------------------
 
 %%%--- TODO TODO TODO -------------------------
-% 1. Filtrar mensajes de error_logger para desactivar los de este modulo, desactivar por defecto el logger?
+% 1. Probar a forzar errores con un login erroneo o con un host errorneo
+% 2. Filtrar mensajes de error_logger para desactivar los de este modulo, desactivar por defecto el logger?
 %%%--------------------------------------------
 
 %%%-----------------
