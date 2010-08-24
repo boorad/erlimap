@@ -4,7 +4,6 @@
 		commands_pending_response = dict:new(), untagged_responses_received = []}).
 
 -define(DEBUG, true).
--define(TIMEOUT, 4000).
 
 -define(LOG_ERROR(Fun, Format, Data), error_logger:error_msg("~p:~p(): " ++ Format ++ "~n", [?MODULE, Fun] ++ Data)).
 -define(LOG_WARNING(Fun, Format, Data), error_logger:warning_msg("~p:~p(): " ++ Format ++ "~n", [?MODULE, Fun] ++ Data)).
