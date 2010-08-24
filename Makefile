@@ -11,5 +11,5 @@ all: $(ESOURCES:.erl=.beam)
 clean:
 	rm -f tags *.beam erl_crash.dump
 
-test:
+test: $(ESOURCES:.erl=.beam)
 	erl -noshell -run imap_fsm test -run init stop
