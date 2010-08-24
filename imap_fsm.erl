@@ -83,7 +83,7 @@ not_authenticated(Command = {command, _, _}, From, StateData) ->
 	handle_command(Command, From, not_authenticated, StateData).
 
 not_authenticated({enqueued_command, Command, From}, StateData) ->
-	?LOG_DEBUG("==============> unenqueued command", []), %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% <================== QUITAR
+	?LOG_DEBUG("command dequeued: ~p", [Command]),
 	handle_command(Command, From, not_authenticated, StateData);
 not_authenticated(Response = {response, _, _, _}, StateData) ->
 	handle_response(Response, not_authenticated, StateData).
