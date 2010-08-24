@@ -12,4 +12,4 @@ clean:
 	rm -f tags *.beam erl_crash.dump
 
 test:
-	erl -noshell -run imap test -run init stop
+	erl -noshell -run imap_fsm test -run init stop

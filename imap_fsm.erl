@@ -13,6 +13,9 @@
 %%--- TODO TODO TODO -------------------------------------------------------------------
 %% Objetivos:
 %%
+%% Implementar 2 capas:
+%%   La 1 es esta y es el control simple de IMAP con una FSM
+%%   La 2 es la encargada de vigilar las capabilities, reconectar y hacer noop (idle), para detectar correo nuevo
 %% Escanear INBOX, listar mensajes, coger un mensaje entero, parsear MIME y generar JSON
 %%--------------------------------------------------------------------------------------
 
