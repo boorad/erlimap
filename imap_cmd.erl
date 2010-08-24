@@ -12,8 +12,11 @@ send_command(SockType, Sock, Command) ->
 	case prepare_command(Command) of
 		{Tag, Line} ->
 			case imap_util:sock_send(SockType, Sock, Line ++ "\r\n") of
-				ok -> {ok, Tag};
-				{error, Reason} -> {error, Reason}
+				ok ->
+					?LOG_DEBUG("line sent: ~s", [Line]),
+					{ok, Tag};
+				{error, Reason} ->
+					{error, Reason}
 			end;
 		Line ->
 			imap_util:sock_send(SockType, Sock, Line ++ "\r\n")
