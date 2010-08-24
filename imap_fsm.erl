@@ -21,6 +21,8 @@
 
 %%%--- TODO TODO TODO -------------------------
 % 1. Probar a forzar errores con un login erroneo o con un host errorneo
+%    Dejar que se devuelvan los errores al usuario y que no de excepcion
+% 3. Implementar la respuesta con LOGIN: "* CAPABILITY IMAP4rev1 UNSELECT ..."
 % 2. Filtrar mensajes de error_logger para desactivar los de este modulo, desactivar por defecto el logger?
 %%%--------------------------------------------
 
@@ -60,24 +62,29 @@ init({SockType, Host, Port}) ->
 	end.
 
 server_greeting(Command = {command, _, _}, From, StateData) ->
-	NewStateData = StateData#state_data{enqueued_commands = [{Command, From} | StateData#state_data.enqueued_commands]},
+	NewStateData = StateData#state_data{enqueued_commands =
+		[{Command, From} | StateData#state_data.enqueued_commands]},
 	?LOG_DEBUG("command enqueued: ~p", [Command]),
 	{next_state, server_greeting, NewStateData}.
 
 server_greeting(Response = {response, untagged, "OK", Capabilities}, StateData) ->
 	?LOG_DEBUG("greeting received: ~p", [Response]),
-	NewStateData = StateData#state_data{server_capabilities = Capabilities, enqueued_commands =
-		lists:reverse(StateData#state_data.enqueued_commands)},
+	EnqueuedCommands = lists:reverse(StateData#state_data.enqueued_commands),
+	NewStateData = StateData#state_data{server_capabilities = Capabilities, enqueued_commands = []},
+	lists:foreach(fun({Command, From}) -> gen_fsm:send_event(self(),
+					{enqueued_command, Command, From}) end, EnqueuedCommands),
 	{next_state, not_authenticated, NewStateData};
 server_greeting(Response = {response, _, _, _}, StateData) ->
 	?LOG_ERROR(server_greeting, "unrecognized greeting: ~p", [Response]),
 	{stop, "unrecognized greeting", StateData}.
 
-% TODO: hay que consumir los comandos encolados lo primero de todo
 % TODO: hacer un comando `tag CAPABILITY' si tras hacer login no hemos recibido las CAPABILITY, en el login con el OK
 not_authenticated(Command = {command, _, _}, From, StateData) ->
 	handle_command(Command, From, not_authenticated, StateData).
 
+not_authenticated({enqueued_command, Command, From}, StateData) ->
+	?LOG_DEBUG("==============> unenqueued command", []), %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% <================== QUITAR
+	handle_command(Command, From, not_authenticated, StateData);
 not_authenticated(Response = {response, _, _, _}, StateData) ->
 	handle_response(Response, not_authenticated, StateData).
 
@@ -173,9 +180,12 @@ test_connection(ConnType, Host, Port, User, Pass) ->
 		tcp -> {ok, Conn} = connect(Host, Port);
 		ssl -> {ok, Conn} = connect_ssl(Host, Port)
 	end,
-	timer:sleep(500), % FIXME: avoids enqueued_commands
+	ok = noop(Conn),
+	ok = noop(Conn),
 	ok = noop(Conn),
 	ok = login(Conn, User, Pass),
+	ok = noop(Conn),
+	ok = noop(Conn),
 	ok = noop(Conn),
 	ok = logout(Conn),
 	ok = disconnect(Conn).

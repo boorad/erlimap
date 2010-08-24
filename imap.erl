@@ -15,7 +15,6 @@ close_account(Account) ->
 init({Host, Port, User, Pass}) ->
 	% FIXME: comprobar is host errorneo
 	{ok, Conn} = imap_fsm:connect(Host, Port),
-	timer:sleep(1000), %FIXME
 	% FIXME: comprobar is logeo errorneo
 	ok = imap_fsm:login(Conn, User, Pass),
 	{ok, Conn}.
