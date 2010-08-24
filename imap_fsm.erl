@@ -1,4 +1,4 @@
--module(imap).
+-module(imap_fsm).
 
 -include("imap.hrl").
 
