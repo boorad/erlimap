@@ -48,9 +48,9 @@ sock_close(ssl, Sock) ->
 	ssl:close(Sock).
 
 gen_tag() ->
-	case get(last_tag) of
-		undefined -> Tag = 0;
-		LastTag -> Tag = LastTag + 1
+	Tag = case get(last_tag) of
+		undefined -> 0;
+		LastTag -> LastTag + 1
 	end,
 	put(last_tag, Tag),
 	string:right(integer_to_list(Tag), 3, $0).

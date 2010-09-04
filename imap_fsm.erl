@@ -7,6 +7,7 @@
 -export([connect/2, connect_ssl/2, login/3, logout/1, noop/1, disconnect/1]).
 
 -export([init/1, handle_sync_event/4, handle_info/3, terminate/3]).
+
 -export([server_greeting/2, server_greeting/3, not_authenticated/2, not_authenticated/3,
 		authenticated/2, authenticated/3, logout/2, logout/3]).
 
@@ -20,7 +21,7 @@
 %%--------------------------------------------------------------------------------------
 
 %%%--- TODO TODO TODO -------------------------
-% 1. Probar a forzar errores con un login erroneo o con un host errorneo
+% 1. Probar a forzar errores con un login erroneo o con un host errorneo, deben salir excepciones?, porque?
 %    Dejar que se devuelvan los errores al usuario y que no de excepcion
 % 3. Implementar la respuesta con LOGIN: "* CAPABILITY IMAP4rev1 UNSELECT ..."
 % 2. Filtrar mensajes de error_logger para desactivar los de este modulo, desactivar por defecto el logger?
@@ -146,11 +147,11 @@ handle_response(Response = {response, untagged, _, _}, StateName, StateData) ->
 		[Response | StateData#state_data.untagged_responses_received]},
 	{next_state, StateName, NewStateData};
 handle_response(Response = {response, Tag, _, _}, StateName, StateData) ->
-	case StateData#state_data.untagged_responses_received of
+	ResponsesReceived = case StateData#state_data.untagged_responses_received of
 		[] ->
-			ResponsesReceived = [Response];
+			[Response];
 		UntaggedResponsesReceived ->
-			ResponsesReceived = lists:reverse([Response | UntaggedResponsesReceived])
+			lists:reverse([Response | UntaggedResponsesReceived])
 	end,
 	{ok, {Command, From}, CommandsPendingResponse} = imap_util:extract_dict_element(Tag,
 		StateData#state_data.commands_pending_response),
@@ -173,9 +174,9 @@ handle_command(Command, From, StateName, StateData) ->
 %%%-----------
 
 test_connection(ConnType, Host, Port, User, Pass) ->
-	case ConnType of
-		tcp -> {ok, Conn} = connect(Host, Port);
-		ssl -> {ok, Conn} = connect_ssl(Host, Port)
+	{ok, Conn} = case ConnType of
+		tcp -> connect(Host, Port);
+		ssl -> connect_ssl(Host, Port)
 	end,
 	ok = noop(Conn),
 	ok = noop(Conn),
