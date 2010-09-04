@@ -4,7 +4,9 @@
 
 -behaviour(gen_server).
 
--compile(export_all). % FIXME
+-export([open_account/5, close_account/1]).
+
+-export([init/1, handle_call/3, terminate/2]).
 
 %%%-----------------
 %%% Client functions
@@ -21,21 +23,21 @@ close_account(Account) ->
 %%%-------------------
 
 init({ConnType, Host, Port, User, Pass}) ->
-	case ConnType of
+	{ok, Conn} = case ConnType of
 		% FIXME: comprobar is host errorneo
-		tcp -> {ok, Conn} = imap_fsm:connect(Host, Port);
-		ssl -> {ok, Conn} = imap_fsm:connect_ssl(Host, Port)
+		tcp -> imap_fsm:connect(Host, Port);
+		ssl -> imap_fsm:connect_ssl(Host, Port)
 	end,
 	% FIXME: comprobar is logeo errorneo
 	ok = imap_fsm:login(Conn, User, Pass),
 	{ok, Conn}.
 
-handle_call(close_account, From, Conn) ->
+handle_call(close_account, _From, Conn) ->
 	ok = imap_fsm:logout(Conn),
 	ok = imap_fsm:disconnect(Conn),
 	{stop, normal, ok, Conn}.
 
-terminate(normal, State) ->
+terminate(normal, _State) ->
 	ok.
 
 %%%-----------
