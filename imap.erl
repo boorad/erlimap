@@ -8,6 +8,10 @@
 
 -export([init/1, handle_call/3, terminate/2]).
 
+%%%--- TODO TODO TODO -------------------------
+%%% 1. Probar a forzar errores con un login erroneo o con un host errorneo, deben salir excepciones?, porque?
+%%%--------------------------------------------
+
 %%%-----------------
 %%% Client functions
 %%%-----------------

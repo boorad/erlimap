@@ -11,20 +11,15 @@
 -export([server_greeting/2, server_greeting/3, not_authenticated/2, not_authenticated/3,
 		authenticated/2, authenticated/3, logout/2, logout/3]).
 
-%%--- TODO TODO TODO -------------------------------------------------------------------
-%% Objetivos:
-%%
-%% Implementar 2 capas:
-%%   La 1 es esta y es el control simple de IMAP con una FSM
-%%   La 2 es la encargada de vigilar las capabilities, reconectar y hacer noop (idle), para detectar correo nuevo
-%% Escanear INBOX, listar mensajes, coger un mensaje entero, parsear MIME y generar JSON
-%%--------------------------------------------------------------------------------------
+%%%--- TODO TODO TODO -------------------------------------------------------------------
+%%% Objetivos:
+%%%
+%%% Escanear INBOX, listar mensajes, coger un mensaje entero, parsear MIME y generar JSON
+%%%--------------------------------------------------------------------------------------
 
 %%%--- TODO TODO TODO -------------------------
-% 1. Probar a forzar errores con un login erroneo o con un host errorneo, deben salir excepciones?, porque?
-%    Dejar que se devuelvan los errores al usuario y que no de excepcion
-% 3. Implementar la respuesta con LOGIN: "* CAPABILITY IMAP4rev1 UNSELECT ..."
-% 2. Filtrar mensajes de error_logger para desactivar los de este modulo, desactivar por defecto el logger?
+%%% 1. Implementar la respuesta con LOGIN: "* CAPABILITY IMAP4rev1 UNSELECT ..."
+%%% 2. Filtrar mensajes de error_logger para desactivar los de este modulo, desactivar por defecto el logger?
 %%%--------------------------------------------
 
 %%%-----------------
@@ -135,8 +130,11 @@ handle_sync_event({command, disconnect, {}}, _From, _StateName, StateData) ->
 	{stop, normal, ok, StateData}.
 
 terminate(normal, _StateName, _StateData) ->
-	?LOG_DEBUG("gen_fsm terminated", []),
-	ok.
+	?LOG_DEBUG("gen_fsm terminated normally", []),
+	ok;
+terminate(Reason, _StateName, _StateData) ->
+	?LOG_DEBUG("gen_fsm terminated because an error occurred", []),
+	{error, Reason}.
 
 %%%--------------------------------------
 %%% Commands/Responses handling functions
