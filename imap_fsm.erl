@@ -18,8 +18,9 @@
 %%%--------------------------------------------------------------------------------------
 
 %%%--- TODO TODO TODO -------------------------
-%%% 1. Implementar la respuesta con LOGIN: "* CAPABILITY IMAP4rev1 UNSELECT ..."
-%%% 2. Filtrar mensajes de error_logger para desactivar los de este modulo, desactivar por defecto el logger?
+%%% 1. Implementar LIST, SELECT, ...
+%%% 2. Implementar la respuesta con LOGIN: "* CAPABILITY IMAP4rev1 UNSELECT ..."
+%%% 3. Filtrar mensajes de error_logger para desactivar los de este modulo, desactivar por defecto el logger?
 %%%--------------------------------------------
 
 %%%-----------------
@@ -72,7 +73,7 @@ server_greeting(Response = {response, untagged, "OK", Capabilities}, StateData) 
 	{next_state, not_authenticated, NewStateData};
 server_greeting(Response = {response, _, _, _}, StateData) ->
 	?LOG_ERROR(server_greeting, "unrecognized greeting: ~p", [Response]),
-	{stop, "unrecognized greeting", StateData}.
+	{stop, unrecognized_greeting, StateData}.
 
 % TODO: hacer un comando `tag CAPABILITY' si tras hacer login no hemos recibido las CAPABILITY, en el login con el OK
 not_authenticated(Command = {command, _, _}, From, StateData) ->
@@ -116,7 +117,7 @@ handle_info({SockType, Sock, Line}, StateName, StateData = #state_data{socket = 
 			?MODULE:StateName(Response, StateData);
 		{error, nomatch} ->
 			?LOG_ERROR(handle_info, "unrecognized response: ~p", [imap_util:clean_line(Line)]),
-			{stop, "unrecognized response", StateData}
+			{stop, unrecognized_response, StateData}
 	end.
 
 handle_sync_event({command, disconnect, {}}, _From, _StateName, StateData) ->

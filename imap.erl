@@ -8,10 +8,6 @@
 
 -export([init/1, handle_call/3, terminate/2]).
 
-%%%--- TODO TODO TODO -------------------------
-%%% 1. Probar a forzar errores con un login erroneo o con un host errorneo, deben salir excepciones?, porque?
-%%%--------------------------------------------
-
 %%%-----------------
 %%% Client functions
 %%%-----------------
@@ -27,19 +23,25 @@ close_account(Account) ->
 %%%-------------------
 
 init({ConnType, Host, Port, User, Pass}) ->
-	{ok, Conn} = case ConnType of
-		% FIXME: comprobar is host errorneo
-		tcp -> imap_fsm:connect(Host, Port);
-		ssl -> imap_fsm:connect_ssl(Host, Port)
-	end,
-	% FIXME: comprobar is logeo errorneo
-	ok = imap_fsm:login(Conn, User, Pass),
-	{ok, Conn}.
+	try
+		{ok, Conn} = case ConnType of
+			tcp -> imap_fsm:connect(Host, Port);
+			ssl -> imap_fsm:connect_ssl(Host, Port)
+		end,
+		ok = imap_fsm:login(Conn, User, Pass),
+		{ok, Conn}
+	catch
+		error:{badmatch, {error, Reason}} -> {stop, Reason}
+	end.
 
 handle_call(close_account, _From, Conn) ->
-	ok = imap_fsm:logout(Conn),
-	ok = imap_fsm:disconnect(Conn),
-	{stop, normal, ok, Conn}.
+	try
+		ok = imap_fsm:logout(Conn),
+		ok = imap_fsm:disconnect(Conn),
+		{stop, normal, ok, Conn}
+	catch
+		error:{badmatch, {error, Reason}} -> {stop, Reason, {error, Reason}, Conn}
+	end.
 
 terminate(normal, _State) ->
 	ok;
