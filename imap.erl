@@ -42,7 +42,9 @@ handle_call(close_account, _From, Conn) ->
 	{stop, normal, ok, Conn}.
 
 terminate(normal, _State) ->
-	ok.
+	ok;
+terminate(Reason, _State) ->
+	{error, Reason}.
 
 %%%-----------
 %%% Unit tests
