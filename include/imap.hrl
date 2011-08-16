@@ -1,7 +1,11 @@
 -include_lib("eunit/include/eunit.hrl").
 
--record(state_data, {socket, socket_type, enqueued_commands = [], server_capabilities = [],
-		commands_pending_response = dict:new(), untagged_responses_received = []}).
+-record(state_data, {socket,
+                     socket_type,
+                     enqueued_commands = [],
+                     server_capabilities = [],
+                     commands_pending_response = dict:new(),
+                     untagged_responses_received = []}).
 
 -define(DEBUG, true).
 

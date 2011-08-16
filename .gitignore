@@ -1,4 +1,5 @@
 *.swp
 *.beam
+ebin/*
 tags
 test_account.conf

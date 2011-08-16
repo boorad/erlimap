@@ -1,0 +1,13 @@
+{application, erlimap,
+    [{description, "Simple IMAP Library for Erlang"},
+     {vsn, "0.0.1"},
+     {modules, [imap,
+                imap_cmd,
+                imap_fsm,
+                imap_re,
+                imap_resp,
+                imap_util
+               ]},
+     {env, [{smarthost, {{127,0,0,1},993}},
+            {ehlo, "localhost"}]},
+     {applications, [kernel, stdlib]}]}.
