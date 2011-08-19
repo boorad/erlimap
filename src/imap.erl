@@ -4,7 +4,9 @@
 
 -behaviour(gen_server).
 
--export([open_account/5, close_account/1]).
+-export([open_account/5, close_account/1,
+         examine/2
+        ]).
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, code_change/3,
          terminate/2]).
@@ -14,10 +16,13 @@
 %%%-----------------
 
 open_account(ConnType, Host, Port, User, Pass) ->
-	gen_server:start_link(?MODULE, {ConnType, Host, Port, User, Pass}, []).
+  gen_server:start_link(?MODULE, {ConnType, Host, Port, User, Pass}, []).
 
 close_account(Account) ->
-	gen_server:call(Account, close_account).
+  gen_server:call(Account, close_account).
+
+examine(Account, Mailbox) ->
+  gen_server:call(Account, {examine, Mailbox}).
 
 %%%-------------------
 %%% Callback functions
@@ -42,7 +47,10 @@ handle_call(close_account, _From, Conn) ->
     {stop, normal, ok, Conn}
   catch
     error:{badmatch, {error, Reason}} -> {stop, Reason, {error, Reason}, Conn}
-  end.
+  end;
+handle_call({examine, Mailbox}, _From, Conn) ->
+  {reply, imap_fsm:examine(Conn, Mailbox), Conn}.
+
 
 handle_cast(_Msg, State) ->
     {noreply, State}.
@@ -59,7 +67,7 @@ terminate(Reason, _State) ->
   {error, Reason}.
 
 %%%-----------
-%%% Unit tests
+%%% tests
 %%%-----------
 
 -ifdef(TEST).
@@ -69,6 +77,8 @@ terminate(Reason, _State) ->
 
 test_account(ConnType, Host, Port, User, Pass) ->
   {ok, Account} = open_account(ConnType, Host, Port, User, Pass),
+  Examine = examine(Account, imap_util:quote_mbox("[Gmail]/All Mail")),
+  ?LOG_DEBUG("Examine: ~p~n", [Examine]),
   ok = close_account(Account).
 
 account_test_() ->

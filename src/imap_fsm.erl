@@ -4,12 +4,18 @@
 
 -behaviour(gen_fsm).
 
--export([connect/2, connect_ssl/2, login/3, logout/1, noop/1, disconnect/1]).
+%% api
+-export([connect/2, connect_ssl/2, login/3, logout/1, noop/1, disconnect/1,
+         examine/2]).
 
--export([init/1, handle_sync_event/4, handle_info/3, terminate/3]).
+%% callbacks
+-export([init/1, handle_event/3, handle_sync_event/4, handle_info/3,
+         code_change/4, terminate/3]).
 
--export([server_greeting/2, server_greeting/3, not_authenticated/2, not_authenticated/3,
-         authenticated/2, authenticated/3, logout/2, logout/3]).
+%% state funs
+-export([server_greeting/2, server_greeting/3, not_authenticated/2,
+         not_authenticated/3, authenticated/2, authenticated/3,
+         logout/2, logout/3]).
 
 %%%--- TODO TODO TODO -------------------------------------------------------------------
 %%% Objetivos:
@@ -45,6 +51,9 @@ noop(Conn) ->
 disconnect(Conn) ->
   gen_fsm:sync_send_all_state_event(Conn, {command, disconnect, {}}).
 
+examine(Conn, Mailbox) ->
+  gen_fsm:sync_send_event(Conn, {command, examine, Mailbox}).
+
 %%%-------------------
 %%% Callback functions
 %%%-------------------
@@ -60,22 +69,25 @@ init({SockType, Host, Port}) ->
 
 server_greeting(Command = {command, _, _}, From, StateData) ->
   NewStateData = StateData#state_data{enqueued_commands =
-                                        [{Command, From} | StateData#state_data.enqueued_commands]},
+    [{Command, From} | StateData#state_data.enqueued_commands]},
   ?LOG_DEBUG("command enqueued: ~p", [Command]),
   {next_state, server_greeting, NewStateData}.
 
-server_greeting(Response = {response, untagged, "OK", Capabilities}, StateData) ->
+server_greeting(Response={response, untagged, "OK", Capabilities}, StateData) ->
   ?LOG_DEBUG("greeting received: ~p", [Response]),
   EnqueuedCommands = lists:reverse(StateData#state_data.enqueued_commands),
-  NewStateData = StateData#state_data{server_capabilities = Capabilities, enqueued_commands = []},
-  lists:foreach(fun({Command, From}) -> gen_fsm:send_event(self(),
-                                                           {enqueued_command, Command, From}) end, EnqueuedCommands),
+  NewStateData = StateData#state_data{server_capabilities = Capabilities,
+                                      enqueued_commands = []},
+  lists:foreach(fun({Command, From}) ->
+    gen_fsm:send_event(self(), {enqueued_command, Command, From})
+  end, EnqueuedCommands),
   {next_state, not_authenticated, NewStateData};
 server_greeting(Response = {response, _, _, _}, StateData) ->
   ?LOG_ERROR(server_greeting, "unrecognized greeting: ~p", [Response]),
   {stop, unrecognized_greeting, StateData}.
 
-                                                % TODO: hacer un comando `tag CAPABILITY' si tras hacer login no hemos recibido las CAPABILITY, en el login con el OK
+%% TODO: hacer un comando `tag CAPABILITY' si tras hacer login no hemos
+%%       recibido las CAPABILITY, en el login con el OK
 not_authenticated(Command = {command, _, _}, From, StateData) ->
   handle_command(Command, From, not_authenticated, StateData).
 
@@ -97,8 +109,9 @@ logout(Command = {command, _, _}, From, StateData) ->
 logout(Response = {response, _, _, _}, StateData) ->
   handle_response(Response, logout, StateData).
 
-                                                % TODO: reconexion en caso de desconexion inesperada
-handle_info({SockTypeClosed, Sock}, StateName, StateData = #state_data{socket = Sock}) when
+%% TODO: reconexion en caso de desconexion inesperada
+handle_info({SockTypeClosed, Sock}, StateName,
+            StateData = #state_data{socket = Sock}) when
     SockTypeClosed == tcp_closed; SockTypeClosed == ssl_closed ->
   NewStateData = StateData#state_data{socket = closed},
   case StateName of
@@ -109,7 +122,8 @@ handle_info({SockTypeClosed, Sock}, StateName, StateData = #state_data{socket = 
       ?LOG_ERROR(handle_info, "IMAP connection closed unexpectedly", []),
       {next_state, logout, NewStateData}
   end;
-handle_info({SockType, Sock, Line}, StateName, StateData = #state_data{socket = Sock}) when
+handle_info({SockType, Sock, Line}, StateName,
+            StateData = #state_data{socket = Sock}) when
     SockType == tcp; SockType == ssl ->
   ?LOG_DEBUG("line received: ~s", [imap_util:clean_line(Line)]),
   case imap_resp:parse_response(imap_util:clean_line(Line)) of
@@ -120,6 +134,10 @@ handle_info({SockType, Sock, Line}, StateName, StateData = #state_data{socket = 
       {stop, unrecognized_response, StateData}
   end.
 
+handle_event(Event, StateName, StateData) ->
+  ?LOG_WARNING(handle_event, "fsm handle_event ignored: ~p", [Event]),
+  {next_state, StateName, StateData}.
+
 handle_sync_event({command, disconnect, {}}, _From, _StateName, StateData) ->
   case StateData#state_data.socket of
     closed ->
@@ -129,6 +147,9 @@ handle_sync_event({command, disconnect, {}}, _From, _StateName, StateData) ->
       ?LOG_INFO("IMAP connection closed", [])
   end,
   {stop, normal, ok, StateData}.
+
+code_change(_OldVsn, StateName, StateData, _Extra) ->
+  {ok, StateName, StateData}.
 
 terminate(normal, _StateName, _StateData) ->
   ?LOG_DEBUG("gen_fsm terminated normally", []),
@@ -143,26 +164,32 @@ terminate(Reason, _StateName, _StateData) ->
 
 handle_response(Response = {response, untagged, _, _}, StateName, StateData) ->
   NewStateData = StateData#state_data{untagged_responses_received =
-                                        [Response | StateData#state_data.untagged_responses_received]},
+    [Response | StateData#state_data.untagged_responses_received]},
   {next_state, StateName, NewStateData};
 handle_response(Response = {response, Tag, _, _}, StateName, StateData) ->
-  ResponsesReceived = case StateData#state_data.untagged_responses_received of
-                        [] ->
-                          [Response];
-                        UntaggedResponsesReceived ->
-                          lists:reverse([Response | UntaggedResponsesReceived])
-                      end,
-  {ok, {Command, From}, CommandsPendingResponse} = imap_util:extract_dict_element(Tag,
-                                                                                  StateData#state_data.commands_pending_response),
-  NewStateData = StateData#state_data{commands_pending_response = CommandsPendingResponse},
-  NextStateName = imap_resp:analyze_response(StateName, ResponsesReceived, Command, From),
+  ResponsesReceived =
+    case StateData#state_data.untagged_responses_received of
+      [] ->
+        [Response];
+      UntaggedResponsesReceived ->
+        lists:reverse([Response | UntaggedResponsesReceived])
+    end,
+  {ok, {Command, From}, CommandsPendingResponse} =
+    imap_util:extract_dict_element(Tag,
+       StateData#state_data.commands_pending_response),
+  NewStateData = StateData#state_data{commands_pending_response =
+                                        CommandsPendingResponse},
+  NextStateName = imap_resp:analyze_response(StateName, ResponsesReceived,
+                                             Command, From),
   {next_state, NextStateName, NewStateData}.
 
 handle_command(Command, From, StateName, StateData) ->
-  case imap_cmd:send_command(StateData#state_data.socket_type, StateData#state_data.socket, Command) of
+  case imap_cmd:send_command(StateData#state_data.socket_type,
+                             StateData#state_data.socket, Command) of
     {ok, Tag} ->
       NewStateData = StateData#state_data{commands_pending_response =
-                                            dict:store(Tag, {Command, From}, StateData#state_data.commands_pending_response)},
+        dict:store(Tag, {Command, From},
+                   StateData#state_data.commands_pending_response)},
       {next_state, StateName, NewStateData};
     {error, Reason} ->
       {stop, Reason, StateData}
@@ -188,7 +215,8 @@ test_connection(ConnType, Host, Port, User, Pass) ->
   ok = disconnect(Conn).
 
 connections_test_() ->
-  {ok, AccountsConf} = file:consult("test_account.conf"),
+  %% TODO: code:priv_dir(erlimap)
+  {ok, AccountsConf} = file:consult("../priv/test_account.conf"),
   GenTest = fun(AccountConf) ->
                 {ConnType, Host, Port, User, Pass} = AccountConf,
                 fun() -> test_connection(ConnType, Host, Port, User, Pass) end
