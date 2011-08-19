@@ -18,3 +18,12 @@
 -else.
 -define(LOG_DEBUG(Format, Data), false).
 -endif.
+
+-define(t2b(T), term_to_binary(T)).
+-define(b2t(B), binary_to_term(B)).
+-define(l2b(L), list_to_binary(L)).
+-define(b2l(B), binary_to_list(B)).
+-define(l2a(L), list_to_atom(L)).
+-define(a2l(A), atom_to_list(A)).
+-define(l2i(L), list_to_integer(L)).
+-define(i2l(I), integer_to_list(I)).
