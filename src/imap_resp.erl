@@ -38,8 +38,12 @@ analyze_response(StateName, Responses, {command, logout, {}}, From) ->
       send_client_response_result(Result, From),
       StateName
   end;
-%% EXAMINE
+%% EXAMINE  - TODO: rfc stipulations
 analyze_response(authenticated, Responses, {command, examine, _}, From) ->
+  send_client_response_result({ok, Responses}, From),
+  authenticated;
+%% SEARCH   - TODO: rfc stipulations
+analyze_response(authenticated, Responses, {command, search, _}, From) ->
   send_client_response_result({ok, Responses}, From),
   authenticated;
 %% NOOP
@@ -95,6 +99,8 @@ int_parse_response("BYE", Line) ->
   imap_re:match_bye_response(Line);
 int_parse_response("FLAGS", Line) ->
   imap_re:match_flags_response(Line);
+int_parse_response("SEARCH", Line) ->
+  imap_re:match_search_response(Line);
 int_parse_response(Resp, Line) ->
   try
     Third = string:to_upper(lists:nth(3, string:tokens(Line, " "))),
@@ -123,20 +129,28 @@ try_third_term(_,_) ->
 %%%-----------
 
 parse_response_test() ->
-  {ok, {response, untagged, "OK", []}} = parse_response("* OK"),
-  {ok, {response, "a01", "OK", ["IMAP4rev1", "foo"]}} =
-    parse_response("a01 ok [capability IMAP4rev1 foo] Hey you."),
-  {ok, {response, "1234", "NO", "bad boy"}} = parse_response("1234 no bad boy"),
-  {ok, {response, untagged, "NO", ""}} = parse_response("* NO"),
-  {ok, {response, "XyZ", "BAD", ""}} = parse_response("XyZ bad"),
-  {ok, {response, untagged, "BAD", "go to hell"}} =
-    parse_response("* BAD go to hell"),
-  {ok, {response, untagged, "BYE", ""}} = parse_response("* BYE see you soon"),
-  {ok, {response, untagged, "CAPABILITY", "IMAP4rev1 UNSELECT IDLE NAMESPACE "
-        "QUOTA ID XLIST CHILDREN X-GM-EXT-1 UIDPLUS COMPRESS=DEFLATE\r"}} =
-    parse_response("* CAPABILITY IMAP4rev1 UNSELECT IDLE NAMESPACE QUOTA ID "
-                   "XLIST CHILDREN X-GM-EXT-1 UIDPLUS COMPRESS=DEFLATE\r\n"),
-  {error, nomatch} = parse_response("01 BYE").
+  ?assertEqual({ok, {response, untagged, "OK", {[],[]}}},
+               parse_response("* OK")),
+  ?assertEqual({ok, {response, "a01", "OK",
+                     {["capability", "IMAP4rev1", "foo"], "Hey you."}}},
+               parse_response("a01 ok [capability IMAP4rev1 foo] Hey you.")),
+  ?assertEqual({ok, {response, "1234", "NO", "bad boy"}},
+               parse_response("1234 no bad boy")),
+  ?assertEqual({ok, {response, untagged, "NO", ""}},
+               parse_response("* NO")),
+  ?assertEqual({ok, {response, "XyZ", "BAD", ""}},
+               parse_response("XyZ bad")),
+  ?assertEqual({ok, {response, untagged, "BAD", "go to hell"}},
+               parse_response("* BAD go to hell")),
+  ?assertEqual({ok, {response, untagged, "BYE", ""}},
+               parse_response("* BYE see you soon")),
+  ?assertEqual({ok, {response, untagged, "CAPABILITY",
+                     ["IMAP4rev1","UNSELECT","IDLE","NAMESPACE","QUOTA","ID",
+                      "XLIST","CHILDREN","X-GM-EXT-1","UIDPLUS",
+                      "COMPRESS=DEFLATE"]}},
+     parse_response("* CAPABILITY IMAP4rev1 UNSELECT IDLE NAMESPACE QUOTA ID "
+                   "XLIST CHILDREN X-GM-EXT-1 UIDPLUS COMPRESS=DEFLATE\r\n")),
+  ?assertEqual({error, nomatch}, parse_response("01 BYE")).
 
 int_parse_response_test() ->
   ?assertEqual({match, {response, "*", "EXISTS", "28"}},

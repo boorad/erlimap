@@ -6,7 +6,9 @@
 
 %% api
 -export([connect/2, connect_ssl/2, login/3, logout/1, noop/1, disconnect/1,
-         examine/2]).
+         examine/2,
+         search/2
+        ]).
 
 %% callbacks
 -export([init/1, handle_event/3, handle_sync_event/4, handle_info/3,
@@ -53,6 +55,9 @@ disconnect(Conn) ->
 
 examine(Conn, Mailbox) ->
   gen_fsm:sync_send_event(Conn, {command, examine, Mailbox}).
+
+search(Conn, SearchKeys) ->
+  gen_fsm:sync_send_event(Conn, {command, search, SearchKeys}).
 
 %%%-------------------
 %%% Callback functions

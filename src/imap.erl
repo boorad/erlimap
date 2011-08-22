@@ -5,7 +5,7 @@
 -behaviour(gen_server).
 
 -export([open_account/5, close_account/1,
-         examine/2
+         examine/2, search/2
         ]).
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, code_change/3,
@@ -23,6 +23,9 @@ close_account(Account) ->
 
 examine(Account, Mailbox) ->
   gen_server:call(Account, {examine, Mailbox}).
+
+search(Account, SearchKeys) ->
+  gen_server:call(Account, {search, SearchKeys}).
 
 %%%-------------------
 %%% Callback functions
@@ -49,7 +52,12 @@ handle_call(close_account, _From, Conn) ->
     error:{badmatch, {error, Reason}} -> {stop, Reason, {error, Reason}, Conn}
   end;
 handle_call({examine, Mailbox}, _From, Conn) ->
-  {reply, imap_fsm:examine(Conn, Mailbox), Conn}.
+  {reply, imap_fsm:examine(Conn, Mailbox), Conn};
+handle_call({search, SearchKeys}, _From, Conn) ->
+  {reply, imap_fsm:search(Conn, SearchKeys), Conn};
+handle_call(_, _From, Conn) ->
+  {reply, ignored, Conn}.
+
 
 
 handle_cast(_Msg, State) ->
@@ -78,7 +86,9 @@ terminate(Reason, _State) ->
 test_account(ConnType, Host, Port, User, Pass) ->
   {ok, Account} = open_account(ConnType, Host, Port, User, Pass),
   Examine = examine(Account, imap_util:quote_mbox("[Gmail]/All Mail")),
+  Search = search(Account, [all]),
   ?LOG_DEBUG("Examine: ~p~n", [Examine]),
+  ?LOG_DEBUG("Search: ~p~n", [Search]),
   ok = close_account(Account).
 
 account_test_() ->
