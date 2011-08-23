@@ -4,10 +4,12 @@ This is an attempt at making an Erlang IMAP client library.  It is not complete.
 
 ## Mostly Complete Commands
 
+* connect/disconnect (tcp or ssl)
 * LOGIN
 * EXAMINE
 * SEARCH
 * FETCH (ish)
+* NOOP
 
 ## Other Notes
 
