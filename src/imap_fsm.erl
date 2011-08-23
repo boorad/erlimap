@@ -183,8 +183,7 @@ handle_response(Response = {response, Tag, _, _}, StateName, StateData) ->
     imap_util:extract_dict_element(Tag,
        StateData#state_data.commands_pending_response),
   NewStateData = StateData#state_data{
-                   commands_pending_response = CommandsPendingResponse,
-                   untagged_responses_received = []
+                   commands_pending_response = CommandsPendingResponse
                   },
   NextStateName = imap_resp:analyze_response(StateName, ResponsesReceived,
                                              Command, From),
