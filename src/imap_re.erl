@@ -10,7 +10,8 @@
          match_flags_response/1,
          match_exists_response/1,
          match_recent_response/1,
-         match_search_response/1
+         match_search_response/1,
+         match_fetch_response/1
         ]).
 
 -define(CAPABILITY_REGEXP, "^(?<TAG>[\\*[:alnum:]]+) (?i)(?<KEYWORD>CAPABILITY) (?<CAPABILITY>.*)?(?-i)(?: .*)??$").
@@ -22,6 +23,7 @@
 -define(EXISTS_REGEXP, "^(?<TAG>[\\*[:alnum:]]+) (?<EXISTS>.*) (?i)(?<KEYWORD>EXISTS)(?-i)$").
 -define(RECENT_REGEXP, "^(?<TAG>[\\*[:alnum:]]+) (?<RECENT>.*) (?i)(?<KEYWORD>RECENT)(?-i)$").
 -define(SEARCH_REGEXP, "^(?<TAG>[\\*[:alnum:]]+) (?i)(?<KEYWORD>SEARCH)( (?<SEARCH>.*))?(?-i)$").
+-define(FETCH_REGEXP, "^(?<TAG>[\\*[:alnum:]]+) (?<ID>.*) (?i)(?<KEYWORD>FETCH)(?-i)(?: (?<REST>.*))??$").
 
 %%%-------------------
 %%% api
@@ -58,6 +60,10 @@ match_search_response(Str) ->
   match_response(Str, ?SEARCH_REGEXP, ["TAG", "KEYWORD", "SEARCH"],
                  fun tokenize/1).
 
+match_fetch_response(Str) ->
+  match_response(Str, ?FETCH_REGEXP, ["TAG", "KEYWORD", "ID", "REST"],
+                 fun transform_fetch/1).
+
 %%%-----------
 %%% internal
 %%%-----------
@@ -66,7 +72,7 @@ match_response(Str, Regexp, Fields) ->
   match_response(Str, Regexp, Fields, fun imap_util:identity_fun/1).
 
 match_response(Str, Regexp, Fields, TransformFun) ->
-  case re:run(Str, Regexp, [{capture, Fields, list}]) of
+  case re:run(trim_lineterms(Str), Regexp, [{capture, Fields, list}]) of
     nomatch ->
       nomatch;
     {match, Matches} ->
@@ -87,6 +93,9 @@ tokenize(Response) ->
   Tokens0 = string:tokens(element(4, Response), " "),
   Tokens1 = lists:map(fun(T) -> trim_all(T) end, Tokens0),
   setelement(4, Response, Tokens1).
+
+transform_fetch({response, Tag, "FETCH", Id, Info}) ->
+  {response, Tag, "FETCH", {Id, Info}}.
 
 trim_all(Input) ->
   trim_lineterms(trim_whitespace(Input)).
@@ -179,7 +188,15 @@ match_recent_response_test() ->
 match_search_response_test() ->
   ?assertEqual({match, {response, "*", "SEARCH", ["1","2","3"]}},
     match_search_response("* SEARCH 1 2 3\r\n")),
-  ?assertEqual(nomatch, match_search_response("* SEARCH\r\n")),
+  ?assertEqual({match,{response,"*","SEARCH",[]}},
+    match_search_response("* SEARCH\r\n")),
+  ok.
+
+match_fetch_response_test() ->
+  ?assertEqual({match, {response, "*", "FETCH", {"8", []}}},
+    match_fetch_response("* 8 FETCH")),
+  ?assertEqual({match, {response, "*", "FETCH", {"8", "extra terms"}}},
+    match_fetch_response("* 8 FETCH extra terms\r\n")),
   ok.
 
 trim_whitespace_test() ->

@@ -12,7 +12,7 @@ parse_response(Line) ->
   Resp = string:to_upper(lists:nth(2, string:tokens(Line, " "))),
   case int_parse_response(Resp, Line) of
     {match, Response} -> {ok, parse_tag(Response)};
-    nomatch -> {error, nomatch}
+    nomatch -> {ok, {response, untagged, Line, []}}
   end.
 
 %% TODO TODO TODO
@@ -121,6 +121,8 @@ try_third_term("EXISTS", Line) ->
   imap_re:match_exists_response(Line);
 try_third_term("RECENT", Line) ->
   imap_re:match_recent_response(Line);
+try_third_term("FETCH", Line) ->
+  imap_re:match_fetch_response(Line);
 try_third_term(_,_) ->
   nomatch.
 
@@ -150,7 +152,9 @@ parse_response_test() ->
                       "COMPRESS=DEFLATE"]}},
      parse_response("* CAPABILITY IMAP4rev1 UNSELECT IDLE NAMESPACE QUOTA ID "
                    "XLIST CHILDREN X-GM-EXT-1 UIDPLUS COMPRESS=DEFLATE\r\n")),
-  ?assertEqual({error, nomatch}, parse_response("01 BYE")).
+  ?assertEqual({error, nomatch}, parse_response("01 BYE")),
+  ?assertEqual({}, parse_response("Delivered-To: dude@gmail.com\r\n")),
+  ok.
 
 int_parse_response_test() ->
   ?assertEqual({match, {response, "*", "EXISTS", "28"}},

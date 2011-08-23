@@ -7,7 +7,8 @@
 %% api
 -export([connect/2, connect_ssl/2, login/3, logout/1, noop/1, disconnect/1,
          examine/2,
-         search/2
+         search/2,
+         fetch/3
         ]).
 
 %% callbacks
@@ -58,6 +59,9 @@ examine(Conn, Mailbox) ->
 
 search(Conn, SearchKeys) ->
   gen_fsm:sync_send_event(Conn, {command, search, SearchKeys}).
+
+fetch(Conn, SequenceSet, MsgDataItems) ->
+  gen_fsm:sync_send_event(Conn, {command, fetch, [SequenceSet, MsgDataItems]}).
 
 %%%-------------------
 %%% Callback functions
@@ -135,7 +139,8 @@ handle_info({SockType, Sock, Line}, StateName,
     {ok, Response} ->
       ?MODULE:StateName(Response, StateData);
     {error, nomatch} ->
-      ?LOG_ERROR(handle_info, "unrecognized response: ~p", [imap_util:clean_line(Line)]),
+      ?LOG_ERROR(handle_info, "unrecognized response: ~p",
+                 [imap_util:clean_line(Line)]),
       {stop, unrecognized_response, StateData}
   end.
 

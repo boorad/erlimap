@@ -8,7 +8,7 @@ This is an attempt at making an Erlang IMAP client library.  It is not complete.
 * LOGIN
 * EXAMINE
 * SEARCH
-* FETCH (ish)
+* FETCH (not handling freeform responses yet)
 * NOOP
 
 ## Other Notes

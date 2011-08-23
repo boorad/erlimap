@@ -5,7 +5,7 @@
 -behaviour(gen_server).
 
 -export([open_account/5, close_account/1,
-         examine/2, search/2
+         examine/2, search/2, fetch/3
         ]).
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, code_change/3,
@@ -26,6 +26,9 @@ examine(Account, Mailbox) ->
 
 search(Account, SearchKeys) ->
   gen_server:call(Account, {search, SearchKeys}).
+
+fetch(Account, SequenceSet, MsgDataItems) ->
+  gen_server:call(Account, {fetch, SequenceSet, MsgDataItems}).
 
 %%%-------------------
 %%% Callback functions
@@ -55,6 +58,8 @@ handle_call({examine, Mailbox}, _From, Conn) ->
   {reply, imap_fsm:examine(Conn, Mailbox), Conn};
 handle_call({search, SearchKeys}, _From, Conn) ->
   {reply, imap_fsm:search(Conn, SearchKeys), Conn};
+handle_call({fetch, SequenceSet, MsgDataItems}, _From, Conn) ->
+  {reply, imap_fsm:fetch(Conn, SequenceSet, MsgDataItems), Conn};
 handle_call(_, _From, Conn) ->
   {reply, ignored, Conn}.
 
@@ -84,11 +89,23 @@ terminate(Reason, _State) ->
 %  ok = eunit:test([imap_fsm, imap_util, imap_re, imap_resp, imap_cmd]).
 
 test_account(ConnType, Host, Port, User, Pass) ->
+  %% open
   {ok, Account} = open_account(ConnType, Host, Port, User, Pass),
+
+  %% examine
   Examine = examine(Account, imap_util:quote_mbox("[Gmail]/All Mail")),
-  Search = search(Account, [all]),
   ?LOG_DEBUG("Examine: ~p~n", [Examine]),
-  ?LOG_DEBUG("Search: ~p~n", [Search]),
+
+  %% search
+  {ok, SearchResponses} = search(Account, [all]),
+  Ids = get_search_ids(SearchResponses),
+  TargetIds = last_x(Ids, 10),
+  ?LOG_DEBUG("Search Target Ids: ~p~n", [TargetIds]),
+
+  %% process msgs
+  process_messages(Account, TargetIds, fun process_message/1),
+
+  %% close
   ok = close_account(Account).
 
 account_test_() ->
@@ -98,5 +115,29 @@ account_test_() ->
                 fun() -> test_account(ConnType, Host, Port, User, Pass) end
             end,
   lists:map(GenTest, AccountsConf).
+
+%% TODO: move these funs below to userland app
+get_search_ids([]) -> undefined;
+get_search_ids([{response, untagged, "SEARCH", Ids}|_]) ->
+  Ids; %% assuming only one of these per SEARCH command :\
+get_search_ids([_|Rest]) ->
+  get_search_ids(Rest).
+
+last_x(List, X) ->
+  Length = length(List),
+  Start = case (X >= Length) of
+            true  -> 1;
+            false -> Length - X + 1
+          end,
+  lists:sublist(List, Start, X).
+
+process_messages(_, [], _) -> ok;
+process_messages(Account, [Id|Rest], ProcessFun) ->
+  Msg = fetch(Account, Id, "RFC822.HEADER"),
+  ProcessFun(Msg),
+  process_messages(Account, Rest, ProcessFun).
+
+process_message(Msg) ->
+  ?LOG_DEBUG("Msg: ~p~n", [Msg]).
 
 -endif.

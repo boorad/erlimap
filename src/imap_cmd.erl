@@ -30,6 +30,8 @@ prepare_command({command, examine, Mailbox}) ->
   prepare_tagged_command("EXAMINE ~s", [Mailbox]);
 prepare_command({command, search, SearchKeys}) ->
   prepare_tagged_command("SEARCH ~s", [imap_util:to_key(SearchKeys)]);
+prepare_command({command, fetch, Args}) ->
+  prepare_tagged_command("FETCH ~s ~s", Args);
 prepare_command({command, noop, {}}) ->
   prepare_tagged_command("NOOP", []).
 
