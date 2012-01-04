@@ -105,6 +105,9 @@ to_atom(V)                 -> to_atom(to_list(V)).
 %%% tests
 %%%-----------
 
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
+
 catch_first_error_test() ->
     {error, foobar} = catch_first_error(fun force_badmatch/0).
 
@@ -115,3 +118,5 @@ force_badmatch() ->
 
 return_error(Reason) ->
   {error, Reason}.
+
+-endif.

@@ -6,9 +6,10 @@
 
 %% api
 -export([connect/2, connect_ssl/2, login/3, logout/1, noop/1, disconnect/1,
-         examine/2,
+         select/2, examine/2,
          search/2,
-         fetch/3
+         fetch/3,
+         store/4
         ]).
 
 %% callbacks
@@ -54,6 +55,9 @@ noop(Conn) ->
 disconnect(Conn) ->
   gen_fsm:sync_send_all_state_event(Conn, {command, disconnect, {}}).
 
+select(Conn, Mailbox) ->
+  gen_fsm:sync_send_event(Conn, {command, select, Mailbox}).
+
 examine(Conn, Mailbox) ->
   gen_fsm:sync_send_event(Conn, {command, examine, Mailbox}).
 
@@ -63,6 +67,9 @@ search(Conn, SearchKeys) ->
 fetch(Conn, SequenceSet, MsgDataItems) ->
   gen_fsm:sync_send_event(Conn, {command, fetch, [SequenceSet, MsgDataItems]}).
 
+store(Conn, SequenceSet, Flags, Action) ->
+  gen_fsm:sync_send_event(Conn, {command, store, [SequenceSet, Flags, Action]}).
+  
 %%%-------------------
 %%% Callback functions
 %%%-------------------
@@ -206,30 +213,12 @@ handle_command(Command, From, StateName, StateData) ->
       {stop, Reason, StateData}
   end.
 
-%%%-----------
-%%% Unit tests
-%%%-----------
 
-test_connection(ConnType, Host, Port, User, Pass) ->
-  {ok, Conn} = case ConnType of
-                 tcp -> connect(Host, Port);
-                 ssl -> connect_ssl(Host, Port)
-               end,
-  ok = noop(Conn),
-  ok = noop(Conn),
-  ok = noop(Conn),
-  ok = login(Conn, User, Pass),
-  ok = noop(Conn),
-  ok = noop(Conn),
-  ok = noop(Conn),
-  ok = logout(Conn),
-  ok = disconnect(Conn).
+%%
+%% Tests
+%%
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
 
-connections_test_() ->
-  %% TODO: code:priv_dir(erlimap)
-  {ok, AccountsConf} = file:consult("../priv/test_account.conf"),
-  GenTest = fun(AccountConf) ->
-                {ConnType, Host, Port, User, Pass} = AccountConf,
-                fun() -> test_connection(ConnType, Host, Port, User, Pass) end
-            end,
-  lists:map(GenTest, AccountsConf).
+  
+-endif.

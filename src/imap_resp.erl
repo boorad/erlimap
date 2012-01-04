@@ -45,10 +45,17 @@ analyze_response(StateName, Responses, {command, logout, {}}, From) ->
       send_client_response_result(Result, From),
       StateName
   end;
+
+%% SELECT  - TODO: rfc stipulations
+analyze_response(authenticated, Responses, {command, select, _}, From) ->
+  send_client_response_result({ok, Responses}, From),
+  authenticated;
+
 %% EXAMINE  - TODO: rfc stipulations
 analyze_response(authenticated, Responses, {command, examine, _}, From) ->
   send_client_response_result({ok, Responses}, From),
   authenticated;
+  
 %% SEARCH   - TODO: rfc stipulations
 analyze_response(authenticated, Responses, {command, search, _}, From) ->
   send_client_response_result({ok, Responses}, From),
@@ -56,6 +63,11 @@ analyze_response(authenticated, Responses, {command, search, _}, From) ->
 
 %% FETCH   - TODO: rfc stipulations
 analyze_response(authenticated, Responses, {command, fetch, _}, From) ->
+  send_client_response_result({ok, Responses}, From),
+  authenticated;
+
+%% STORE   - TODO: rfc stipulations
+analyze_response(authenticated, Responses, {command, store, _}, From) ->
   send_client_response_result({ok, Responses}, From),
   authenticated;
   
@@ -118,10 +130,10 @@ int_parse_response(Resp, Line) ->
   try
     Third = string:to_upper(lists:nth(3, string:tokens(Line, " "))),
     case try_third_term(Third, Line) of
-      {match, Response} -> {match, Response};
+      {match, Response} ->
+        {match, Response};
       _ ->
-        ?LOG_ERROR(int_parse_response, "Unhandled response: ~p~n~p~n",
-                   [Resp,Line]),
+        ?LOG_ERROR(int_parse_response, "Unhandled response: ~p~n~p~n", [Resp,Line]),
         nomatch
     end
   catch
@@ -170,7 +182,7 @@ parse_response_test() ->
                    "XLIST CHILDREN X-GM-EXT-1 UIDPLUS COMPRESS=DEFLATE\r\n")),
   ?assertEqual({ok, {response, untagged, "Delivered-To: dude@gmail.com",
                     []}},
-                parse_response("Delivered-To: dude@gmail.com\r\n")),
+                parse_response("Delivered-To: dude@gmail.com")),
   %?assertEqual({error, nomatch}, parse_response("01 BYE")),
   ok.
 
