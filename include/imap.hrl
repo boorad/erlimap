@@ -8,7 +8,7 @@
                      untagged_responses_received = []}).
 
 % uncomment this if you want to enable debug mode
-% -define(DEBUG, true).
+%-define(DEBUG, true).
 
 -ifdef(DEBUG).
     -define(LOG_DEBUG(Format, Data), ?LOG_INFO("*** DEBUG: " ++ Format ++ " ***", Data)).
