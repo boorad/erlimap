@@ -9,11 +9,18 @@
 %%%----------------------------
 
 parse_response(Line) ->
-  Resp = string:to_upper(lists:nth(2, string:tokens(Line, " "))),
-  case int_parse_response(Resp, Line) of
-    {match, Response} -> {ok, parse_tag(Response)};
-    nomatch -> {ok, {response, untagged, Line, []}}
-  end.
+    case string:tokens(Line, " ") of
+        [] ->
+            {ok, {response, untagged, [], []}};
+        [_] ->
+            {ok, {response, untagged, Line, []}};
+        _ ->
+            Resp = string:to_upper(lists:nth(2, string:tokens(Line, " "))),
+            case int_parse_response(Resp, Line) of
+                {match, Response} -> {ok, parse_tag(Response)};
+                nomatch -> {ok, {response, untagged, Line, []}}
+            end
+    end.
 
 %% TODO TODO TODO
 %% LOGIN
@@ -46,6 +53,12 @@ analyze_response(authenticated, Responses, {command, examine, _}, From) ->
 analyze_response(authenticated, Responses, {command, search, _}, From) ->
   send_client_response_result({ok, Responses}, From),
   authenticated;
+
+%% FETCH   - TODO: rfc stipulations
+analyze_response(authenticated, Responses, {command, fetch, _}, From) ->
+  send_client_response_result({ok, Responses}, From),
+  authenticated;
+  
 %% NOOP
 analyze_response(StateName, Responses, {command, noop, {}}, From) ->
   {result, Result} = get_response_result(Responses),
@@ -126,9 +139,12 @@ try_third_term("FETCH", Line) ->
 try_third_term(_,_) ->
   nomatch.
 
-%%%-----------
-%%% tests
-%%%-----------
+
+%%
+%% Tests
+%%
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
 
 parse_response_test() ->
   ?assertEqual({ok, {response, untagged, "OK", {[],[]}}},
@@ -152,11 +168,15 @@ parse_response_test() ->
                       "COMPRESS=DEFLATE"]}},
      parse_response("* CAPABILITY IMAP4rev1 UNSELECT IDLE NAMESPACE QUOTA ID "
                    "XLIST CHILDREN X-GM-EXT-1 UIDPLUS COMPRESS=DEFLATE\r\n")),
-  ?assertEqual({error, nomatch}, parse_response("01 BYE")),
-  ?assertEqual({}, parse_response("Delivered-To: dude@gmail.com\r\n")),
+  ?assertEqual({ok, {response, untagged, "Delivered-To: dude@gmail.com",
+                    []}},
+                parse_response("Delivered-To: dude@gmail.com\r\n")),
+  %?assertEqual({error, nomatch}, parse_response("01 BYE")),
   ok.
 
 int_parse_response_test() ->
   ?assertEqual({match, {response, "*", "EXISTS", "28"}},
                int_parse_response("28", "* 28 EXISTS")),
   ok.
+
+-endif.
