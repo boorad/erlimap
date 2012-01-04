@@ -1,19 +1,26 @@
 ERL ?= erl
 APP := koth
 
+REBAR ?= ./rebar
+
 .PHONY: deps
 
 all: deps
-	@./rebar compile
+	@$(REBAR) compile
 
 deps:
-	@./rebar get-deps
+	@$(REBAR) get-deps
 
 clean:
-	@./rebar clean
+	@$(REBAR) clean
 
 distclean: clean
-	@./rebar delete-deps
+	@$(REBAR) delete-deps
 
 docs:
 	@erl -noshell -run edoc_run application '$(APP)' '"."' '[]'
+
+test:
+	@rm -rf .eunit
+	@mkdir -p .eunit
+	@$(REBAR) skip_deps=true eunit

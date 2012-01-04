@@ -3,3 +3,4 @@
 ebin/*
 tags
 test_account.conf
+/.eunit
