@@ -7,16 +7,19 @@
                      commands_pending_response = dict:new(),
                      untagged_responses_received = []}).
 
--define(DEBUG, true).
-
--define(LOG_ERROR(Fun, Format, Data), error_logger:error_msg("~p:~p(): " ++ Format ++ "~n", [?MODULE, Fun] ++ Data)).
--define(LOG_WARNING(Fun, Format, Data), error_logger:warning_msg("~p:~p(): " ++ Format ++ "~n", [?MODULE, Fun] ++ Data)).
--define(LOG_INFO(Format, Data), error_logger:info_msg(Format ++ "~n", Data)).
+% uncomment this if you want to enable debug mode
+% -define(DEBUG, true).
 
 -ifdef(DEBUG).
--define(LOG_DEBUG(Format, Data), ?LOG_INFO("*** DEBUG: " ++ Format ++ " ***", Data)).
+    -define(LOG_DEBUG(Format, Data), ?LOG_INFO("*** DEBUG: " ++ Format ++ " ***", Data)).
+    -define(LOG_ERROR(Fun, Format, Data), error_logger:error_msg("~p:~p(): " ++ Format ++ "~n", [?MODULE, Fun] ++ Data)).
+    -define(LOG_WARNING(Fun, Format, Data), error_logger:warning_msg("~p:~p(): " ++ Format ++ "~n", [?MODULE, Fun] ++ Data)).
+    -define(LOG_INFO(Format, Data), error_logger:info_msg(Format ++ "~n", Data)).
 -else.
--define(LOG_DEBUG(Format, Data), false).
+    -define(LOG_DEBUG(Format, Data), true).
+    -define(LOG_ERROR(Fun, Format, Data), true).
+    -define(LOG_WARNING(Fun, Format, Data), true).
+    -define(LOG_INFO(Format, Data), true).
 -endif.
 
 -define(t2b(T), term_to_binary(T)).
