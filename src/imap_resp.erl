@@ -126,19 +126,19 @@ int_parse_response("FLAGS", Line) ->
   imap_re:match_flags_response(Line);
 int_parse_response("SEARCH", Line) ->
   imap_re:match_search_response(Line);
-int_parse_response(Resp, Line) ->
+int_parse_response(_Resp, Line) ->
   try
     Third = string:to_upper(lists:nth(3, string:tokens(Line, " "))),
     case try_third_term(Third, Line) of
       {match, Response} ->
         {match, Response};
       _ ->
-        ?LOG_ERROR(int_parse_response, "Unhandled response: ~p~n~p~n", [Resp,Line]),
+        %%?LOG_ERROR(int_parse_response, "Unhandled response: ~p~n~p~n", [Resp,Line]),
         nomatch
     end
   catch
-    _:Err ->
-      ?LOG_DEBUG("try_third_term error: ~p", [Err]),
+    _:_Err ->
+      %%?LOG_DEBUG("try_third_term error: ~p", [Err]),
       nomatch
   end.
 

@@ -89,8 +89,8 @@ server_greeting(Command = {command, _, _}, From, StateData) ->
   ?LOG_DEBUG("command enqueued: ~p", [Command]),
   {next_state, server_greeting, NewStateData}.
 
-server_greeting(Response={response, untagged, "OK", Capabilities}, StateData) ->
-  ?LOG_DEBUG("greeting received: ~p", [Response]),
+server_greeting(_Response={response, untagged, "OK", Capabilities}, StateData) ->
+  %%?LOG_DEBUG("greeting received: ~p", [Response]),
   EnqueuedCommands = lists:reverse(StateData#state_data.enqueued_commands),
   NewStateData = StateData#state_data{server_capabilities = Capabilities,
                                       enqueued_commands = []},
@@ -98,8 +98,8 @@ server_greeting(Response={response, untagged, "OK", Capabilities}, StateData) ->
     gen_fsm:send_event(self(), {enqueued_command, Command, From})
   end, EnqueuedCommands),
   {next_state, not_authenticated, NewStateData};
-server_greeting(Response = {response, _, _, _}, StateData) ->
-  ?LOG_ERROR(server_greeting, "unrecognized greeting: ~p", [Response]),
+server_greeting(_Response = {response, _, _, _}, StateData) ->
+  %%?LOG_ERROR(server_greeting, "unrecognized greeting: ~p", [Response]),
   {stop, unrecognized_greeting, StateData}.
 
 %% TODO: hacer un comando `tag CAPABILITY' si tras hacer login no hemos
@@ -151,8 +151,8 @@ handle_info({SockType, Sock, Line}, StateName,
       {stop, unrecognized_response, StateData}
   end.
 
-handle_event(Event, StateName, StateData) ->
-  ?LOG_WARNING(handle_event, "fsm handle_event ignored: ~p", [Event]),
+handle_event(_Event, StateName, StateData) ->
+  %%?LOG_WARNING(handle_event, "fsm handle_event ignored: ~p", [Event]),
   {next_state, StateName, StateData}.
 
 handle_sync_event({command, disconnect, {}}, _From, _StateName, StateData) ->
