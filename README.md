@@ -17,10 +17,10 @@ This is an attempt at making an Erlang IMAP client library.  It is not complete.
 
 ## Releated Links
 
-http://www.imapwiki.org/
-http://dovecot.org/imap-client-coding-howto.html
-http://dovecot.org/client-commandments.txt
-http://bobpeers.com/technical/telnet_imap
+* http://www.imapwiki.org/
+* http://dovecot.org/imap-client-coding-howto.html
+* http://dovecot.org/client-commandments.txt
+* http://bobpeers.com/technical/telnet_imap
 
 ## Other Notes
 
