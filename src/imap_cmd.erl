@@ -26,12 +26,16 @@ prepare_command({command, login, {User, Pass}}) ->
   prepare_tagged_command("LOGIN ~s ~s", [User, Pass]);
 prepare_command({command, logout, {}}) ->
   prepare_tagged_command("LOGOUT", []);
+prepare_command({command, select, Mailbox}) ->
+  prepare_tagged_command("SELECT ~s", [Mailbox]);
 prepare_command({command, examine, Mailbox}) ->
   prepare_tagged_command("EXAMINE ~s", [Mailbox]);
 prepare_command({command, search, SearchKeys}) ->
   prepare_tagged_command("SEARCH ~s", [imap_util:to_key(SearchKeys)]);
 prepare_command({command, fetch, Args}) ->
   prepare_tagged_command("FETCH ~s ~s", Args);
+prepare_command({command, store, Args}) ->
+  prepare_tagged_command("store ~s ~s \\~s", Args);
 prepare_command({command, noop, {}}) ->
   prepare_tagged_command("NOOP", []).
 
@@ -45,9 +49,10 @@ prepare_tagged_command(Format, Args) ->
 %%%-----------
 
 -ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
 
 examine_test() ->
-  ?assertEqual({"000", "000 EXAMINE [Gmail]/All Mail"},
+    ?assertEqual({"000", "000 EXAMINE [Gmail]/All Mail"},
                prepare_command({command, examine, "[Gmail]/All Mail"})).
 
 -endif.

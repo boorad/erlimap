@@ -6,10 +6,21 @@ This is an attempt at making an Erlang IMAP client library.  It is not complete.
 
 * connect/disconnect (tcp or ssl)
 * LOGIN
-* EXAMINE
+* EXAMINE (read-only)
+* SELECT  (read-write)
 * SEARCH
-* FETCH (not handling freeform responses yet)
+* FETCH
+* STORE
+    * . store 1 flags \Seen
+    * . store 1,2 -flags \Seen
 * NOOP
+
+## Releated Links
+
+* http://www.imapwiki.org/
+* http://dovecot.org/imap-client-coding-howto.html
+* http://dovecot.org/client-commandments.txt
+* http://bobpeers.com/technical/telnet_imap
 
 ## Other Notes
 
